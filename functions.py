@@ -6,7 +6,8 @@ import sys
 
 from pathlib import Path
 from typing import Any
-
+import pytmx
+from pytmx.util_pygame import load_pygame
 
 from constants import *
 

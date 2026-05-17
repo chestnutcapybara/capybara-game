@@ -5,6 +5,7 @@ It also includes a custom error class CapybaraConquestError which is used to rai
 '''
 from __future__ import annotations
 import pygame
+import pymunk
 
 pygame.font.init()
 
@@ -27,3 +28,12 @@ BLACK = (0, 0, 0)
 
 # Other
 TILE_SIZE = 32
+
+# Physics
+
+level = pymunk.Space()
+level.gravity = (0, 200)
+floor_body = level.static_body
+floor_shape = pymunk.Segment(floor_body, (0, SCREEN_HEIGHT - 50), (SCREEN_WIDTH, SCREEN_HEIGHT - 50), 100)
+floor_shape.friction = 75.0
+level.add(floor_shape)

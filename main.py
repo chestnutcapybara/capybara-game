@@ -5,6 +5,8 @@ This is the main file for Capybara Conquest. It is the heart and soul of the gam
 
 # Imports
 from __future__ import annotations
+
+from pymunk import space
 from constants import *
 
 import pygame #type:ignore
@@ -12,6 +14,10 @@ import assets
 import widgets
 import terrain
 import animation
+import pymunk.pygame_util
+from player import Player as _player
+from assets import AssetManager, SpriteSheet
+from animation import Animation
 
 # Variables
 title = FONT.render("Capybara Conquest", True, (0, 0, 0))
@@ -47,6 +53,22 @@ WORLD_PLATFORMS.append(("ladder-platform-chunk", 300, 300))
 # asset manager stuf
 asset_manager = assets.AssetManager()
 player_walk_spritesheet = asset_manager.load_image("Capybara Walking SpriteSheet", "assets/images/walk.png")
+
+#player
+
+draw_options = pymunk.pygame_util.DrawOptions(screen)
+asset_manager = AssetManager()
+walk_sheet_img = asset_manager.load_image("walk_sheet", "assets/images/walk.png")
+sheet_slicer = SpriteSheet(walk_sheet_img)
+walk_frames = sheet_slicer.cut_strip(0, 0, 63, 63, 8) 
+idle_sheet_img = asset_manager.load_image("idle_sheet", "assets/images/idle.png")
+idle_slicer = SpriteSheet(idle_sheet_img)
+idle_frames = idle_slicer.cut_strip(0, 0, 63, 63, 8) 
+player_anims = {
+    "walk": Animation(walk_frames, 0.1),
+    "idle": Animation(idle_frames, 0.7)
+}
+Player = _player(0,0,100, player_anims, level)
 
 
 running = True
@@ -89,6 +111,17 @@ while running:
     elif scene_state == "game":
         FIELD_BACKGROUND = pygame.transform.scale(asset_manager.load_image("Field Background", "assets/images/capybara-conquest-field-background.png"), (SCREEN_WIDTH, SCREEN_HEIGHT))
         screen.blit(FIELD_BACKGROUND, (0, 0))
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP]:
+            Player.movement("up")
+        if keys[pygame.K_LEFT]:
+            Player.movement("left")
+        if keys[pygame.K_RIGHT]:
+            Player.movement("right")
+        level.step(dt)
+        level.debug_draw(draw_options)
+        Player.update(dt)
+        Player.draw(screen)
         # game things here now...?
         for tmx_data, offset_x, offset_y in WORLD_PLATFORMS:
             terrain.draw_tmx(screen, tmx_data, offset_x, offset_y)
