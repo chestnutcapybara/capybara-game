@@ -12,12 +12,12 @@ class Player:
 
         # PhEsics
         self.mass = 1
-        self.body = pymunk.Body(self.mass, float('inf')) 
+        self.body = pymunk.Body(self.mass, float('inf'))
         self.body.position = (x, y)
-        
+
         self.shape = pymunk.Poly.create_box(self.body, (100, 100))
         self.shape.friction = 0.75
-        
+
         space.add(self.body, self.shape)
 
     def update(self, dt):
@@ -35,13 +35,13 @@ class Player:
         image = pygame.transform.scale(self.animations[self.current_state].get_frame(), (128, 128))
         pos = self.body.position
         draw_x = pos.x
-        draw_y = pos.y 
-        
+        draw_y = pos.y
+
         rect = image.get_rect(center=(draw_x, draw_y))
-        
+
         if not self.facing_right:
             image = pygame.transform.flip(image, True, False)
-            
+
         screen.blit(image, rect)
 
 

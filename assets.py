@@ -59,7 +59,7 @@ class SpriteSheet:
             sprites.append(sprite)
 
         return sprites
-    
+
 ##################
 ## Asset Manager #
 ##################
@@ -68,7 +68,7 @@ class AssetManager:
     ''' ### Grandmaster class of Asset Management, used to load and store images in a cache.
 
         METHODS: load_image, get_image, unload_image, clear
-        
+
     '''
     def __init__(self):
         # Stores already-loaded images
@@ -85,7 +85,7 @@ class AssetManager:
         convert_alpha: bool = True,
     ) -> pygame.Surface:
         ''' Most fundemental function of Asset Manager. Checks if image is already loaded, if not, loads it and stores it in the cache. '''
-        
+
         # Return cached version if already loaded
         if name in self.assets:
             return self.assets[name]
