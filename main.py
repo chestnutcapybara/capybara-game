@@ -1,131 +1,330 @@
-'''
+"""
  --- main.py ---
-This is the main file for Capybara Conquest. It is the heart and soul of the game.
-'''
+This is the main file for Capybara Conquest.
 
-# Imports
+Requires pygame-ce:
+pip install pygame-ce
+"""
+
 from __future__ import annotations
 
-from pymunk import space
-from constants import *
+# Imports
+import pygame  # type: ignore
+import pymunk
+import pymunk.pygame_util
 
-import pygame #type:ignore
 import assets
 import widgets
 import terrain
-import animation
-import pymunk.pygame_util
-from player import Player as _player
+
+from constants import *
 from assets import AssetManager, SpriteSheet
 from animation import Animation
+from player import Player
 
-# Variables
-title = FONT.render("Capybara Conquest", True, (0, 0, 0))
+
+# =========================
+# Initialization
+# =========================
 
 pygame.init()
 pygame.display.init()
 
-# Load icon first
-icon = pygame.image.load("icon.ico")
+FPS = 60
+clock = pygame.time.Clock()
 
-win = pygame.window.Window(
+window = pygame.window.Window(
     title="Capybara Conquest",
     size=(SCREEN_WIDTH, SCREEN_HEIGHT),
     resizable=True
 )
 
-# Set the window icon
-win.set_icon(icon)
-win.maximize()
+screen = window.get_surface()
 
-screen = win.get_surface()
-clock = pygame.time.Clock()
-FPS = 60
+# Icon
+icon = pygame.image.load("icon.ico")
+window.set_icon(icon)
+window.maximize()
 
-SCREEN_HEIGHT = screen.get_height()
-SCREEN_WIDTH = screen.get_width()
-
-# Load TMX maps
-WORLD_PLATFORMS = []
-WORLD_PLATFORMS.append(("flat-platform-chunk", 0, 0))
-WORLD_PLATFORMS.append(("ladder-platform-chunk", 300, 300))
-
-# asset manager stuf
-asset_manager = assets.AssetManager()
-player_walk_spritesheet = asset_manager.load_image("Capybara Walking SpriteSheet", "assets/images/walk.png")
-
-#player
+# Physics
+level = pymunk.Space()
+level.gravity = (0, 900)
 
 draw_options = pymunk.pygame_util.DrawOptions(screen)
+
+# Floor collision
+floor = pymunk.Segment(
+    level.static_body,
+    (0, SCREEN_HEIGHT - 50),
+    (SCREEN_WIDTH, SCREEN_HEIGHT - 50),
+    5
+)
+
+floor.friction = 1.0
+level.add(floor)
+
+
+# =========================
+# Scene Constants
+# =========================
+
+MENU = 0
+GAME = 1
+
+scene_state = MENU
+
+
+# =========================
+# Asset Loading
+# =========================
+
 asset_manager = AssetManager()
-walk_sheet_img = asset_manager.load_image("walk_sheet", "assets/images/walk.png")
-sheet_slicer = SpriteSheet(walk_sheet_img)
-walk_frames = sheet_slicer.cut_strip(0, 0, 63, 63, 8) 
-idle_sheet_img = asset_manager.load_image("idle_sheet", "assets/images/idle.png")
-idle_slicer = SpriteSheet(idle_sheet_img)
-idle_frames = idle_slicer.cut_strip(0, 0, 63, 63, 8) 
-player_anims = {
+
+# Backgrounds
+menu_bg_original = asset_manager.load_image(
+    "menu_bg",
+    "assets/images/Forest-Background.png"
+)
+
+game_bg_original = asset_manager.load_image(
+    "game_bg",
+    "assets/images/capybara-conquest-field-background.png"
+)
+
+# Player animation sheets
+walk_sheet = asset_manager.load_image(
+    "walk_sheet",
+    "assets/images/walk.png"
+)
+
+idle_sheet = asset_manager.load_image(
+    "idle_sheet",
+    "assets/images/idle.png"
+)
+
+# Slice animations
+walk_frames = SpriteSheet(walk_sheet).cut_strip(
+    0, 0, 63, 63, 8
+)
+
+idle_frames = SpriteSheet(idle_sheet).cut_strip(
+    0, 0, 63, 63, 8
+)
+
+# Animation dictionary
+player_animations = {
     "walk": Animation(walk_frames, 0.1),
     "idle": Animation(idle_frames, 0.7)
 }
-Player = _player(0,0,100, player_anims, level)
 
+# Create player
+player = Player(
+    400,
+    300,
+    100,
+    player_animations,
+    level
+)
+
+
+# =========================
+# World Platforms
+# =========================
+
+WORLD_PLATFORMS = [
+    ("flat-platform-chunk", 0, 0),
+    ("ladder-platform-chunk", 300, 300)
+]
+
+
+# =========================
+# UI
+# =========================
+
+title = FONT.render(
+    "Capybara Conquest",
+    True,
+    (0, 0, 0)
+)
+
+
+def create_menu_buttons():
+    center_x = screen.get_width() / 2 - 150
+
+    play_button = widgets.Button(
+        center_x,
+        400,
+        400,
+        120,
+        "Play",
+        FONT,
+        BACKGROUNDCOLOR
+    )
+
+    quit_button = widgets.Button(
+        center_x,
+        550,
+        400,
+        120,
+        "Quit",
+        FONT,
+        BACKGROUNDCOLOR
+    )
+
+    return play_button, quit_button
+
+
+play_button, quit_button = create_menu_buttons()
+
+
+# =========================
+# Helper Functions
+# =========================
+
+def get_scaled_background(
+    image: pygame.Surface
+) -> pygame.Surface:
+
+    return pygame.transform.scale(
+        image,
+        (
+            screen.get_width(),
+            screen.get_height()
+        )
+    )
+
+
+# =========================
+# Main Loop
+# =========================
 
 running = True
 
-scene_state = "menu"
-
-PLAYBUTTON = widgets.Button(SCREEN_WIDTH/2 - 150, 400, 400, 120, "Play", FONT, BACKGROUNDCOLOR)
-QUITBUTTON = widgets.Button(SCREEN_WIDTH/2 - 150, 550, 400, 120, "Quit", FONT, BACKGROUNDCOLOR)
-
 while running:
 
-    dt = clock.tick(FPS) / 1000  # Delta time in seconds.
+    dt = clock.tick(FPS) / 1000
 
-    if scene_state == "menu":
-        SCREEN_HEIGHT = screen.get_height()
-        SCREEN_WIDTH = screen.get_width()
-        PLAYBUTTON = widgets.Button(SCREEN_WIDTH/2 - 150, 400, 400, 120, "Play", FONT, BACKGROUNDCOLOR) #Keep this there so it updates to the new screen width
-        QUITBUTTON = widgets.Button(SCREEN_WIDTH/2 - 150, 550, 400, 120, "Quit", FONT, BACKGROUNDCOLOR)
-        #Keep the following line for resizablitlty reasons
-        FIELD_BACKGROUND = pygame.transform.scale(asset_manager.load_image("Forest Background","assets/images/Forest-Background.png"), (SCREEN_WIDTH, SCREEN_HEIGHT))
-        PLAYBUTTON.update(pygame.mouse.get_pos())
-        QUITBUTTON.update(pygame.mouse.get_pos())
+    mouse_pos = pygame.mouse.get_pos()
+
+    # =====================
+    # Events
+    # =====================
 
     for event in pygame.event.get():
+
         if event.type == pygame.QUIT:
             running = False
-        elif scene_state == "menu":
-            if PLAYBUTTON.is_clicked(event):
-                scene_state = "game"
-            if QUITBUTTON.is_clicked(event):
+
+        elif event.type == pygame.VIDEORESIZE:
+
+            # Recreate menu buttons
+            play_button, quit_button = create_menu_buttons()
+
+            # Recreate floor
+            level.remove(floor)
+
+            floor = pymunk.Segment(
+                level.static_body,
+                (0, screen.get_height() - 50),
+                (screen.get_width(), screen.get_height() - 50),
+                5
+            )
+
+            floor.friction = 1.0
+            level.add(floor)
+
+        if scene_state == MENU:
+
+            if play_button.is_clicked(event):
+                scene_state = GAME
+
+            if quit_button.is_clicked(event):
                 running = False
 
-    if scene_state == "menu":
-        screen.blit(FIELD_BACKGROUND, (0, 0))
-        screen.blit(icon, (SCREEN_WIDTH/2 - icon.get_width()/2, -40))
-        screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, 150))
-        PLAYBUTTON.draw(screen)
-        QUITBUTTON.draw(screen)
+    # =====================
+    # MENU
+    # =====================
 
-    elif scene_state == "game":
-        FIELD_BACKGROUND = pygame.transform.scale(asset_manager.load_image("Field Background", "assets/images/capybara-conquest-field-background.png"), (SCREEN_WIDTH, SCREEN_HEIGHT))
-        screen.blit(FIELD_BACKGROUND, (0, 0))
+    if scene_state == MENU:
+
+        background = get_scaled_background(
+            menu_bg_original
+        )
+
+        play_button.update(mouse_pos)
+        quit_button.update(mouse_pos)
+
+        screen.blit(background, (0, 0))
+
+        screen.blit(
+            icon,
+            (
+                screen.get_width() / 2
+                - icon.get_width() / 2,
+                -40
+            )
+        )
+
+        screen.blit(
+            title,
+            (
+                screen.get_width() / 2
+                - title.get_width() / 2,
+                150
+            )
+        )
+
+        play_button.draw(screen)
+        quit_button.draw(screen)
+
+    # =====================
+    # GAME
+    # =====================
+
+    elif scene_state == GAME:
+
+        background = get_scaled_background(
+            game_bg_original
+        )
+
+        screen.blit(background, (0, 0))
+
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP]:
-            Player.movement("up")
-        if keys[pygame.K_LEFT]:
-            Player.movement("left")
-        if keys[pygame.K_RIGHT]:
-            Player.movement("right")
-        level.step(dt)
-        level.debug_draw(draw_options)
-        Player.update(dt)
-        Player.draw(screen)
-        # game things here now...?
-        for tmx_data, offset_x, offset_y in WORLD_PLATFORMS:
-            terrain.draw_tmx(screen, tmx_data, offset_x, offset_y)
 
-    win.flip()
+        if keys[pygame.K_LEFT]:
+            player.movement("left")
+
+        if keys[pygame.K_RIGHT]:
+            player.movement("right")
+
+        if keys[pygame.K_UP]:
+            player.movement("up")
+
+        # Physics
+        level.step(dt)
+
+        # Update player
+        player.update(dt)
+
+        # Draw world
+        level.debug_draw(draw_options)
+
+        for tmx_data, offset_x, offset_y in WORLD_PLATFORMS:
+
+            terrain.draw_tmx(
+                screen,
+                tmx_data,
+                offset_x,
+                offset_y
+            )
+
+        # Draw player
+        player.draw(screen)
+
+    # =====================
+    # Render
+    # =====================
+
+    window.flip()
 
 pygame.quit()
